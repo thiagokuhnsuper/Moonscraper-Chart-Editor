@@ -33,7 +33,7 @@ public static class NativeMessageBox {
 #elif UNITY_STANDALONE_LINUX
         m_platformWrapper = new NativeMessageBoxLinux();
 #elif UNITY_STANDALONE_OSX
-
+        m_platformWrapper = new NativeMessageBoxMac();
 #endif
 
         UnityEngine.Debug.Assert(m_platformWrapper != null, "Platform wrapper needs implementation!");
