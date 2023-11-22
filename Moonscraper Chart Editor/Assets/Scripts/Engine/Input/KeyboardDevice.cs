@@ -22,7 +22,11 @@ namespace MoonscraperEngine.Input
         static InputFn inputDownFn = UnityEngine.Input.GetKeyDown;
         static InputFn inputUpFn = UnityEngine.Input.GetKeyUp;
         static InputFn inputGetFn = UnityEngine.Input.GetKey;
+#if UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
+        public static bool ctrlKeyBeingPressed { get { return UnityEngine.Input.GetKey(KeyCode.LeftCommand) || UnityEngine.Input.GetKey(KeyCode.RightCommand); } }
+#else
         public static bool ctrlKeyBeingPressed { get { return UnityEngine.Input.GetKey(KeyCode.LeftControl) || UnityEngine.Input.GetKey(KeyCode.RightControl); } }
+#endif
         public static bool shiftKeyBeingPressed { get { return UnityEngine.Input.GetKey(KeyCode.LeftShift) || UnityEngine.Input.GetKey(KeyCode.RightShift); } }
         public static bool atlKeyBeingPressed { get { return UnityEngine.Input.GetKey(KeyCode.LeftAlt) || UnityEngine.Input.GetKey(KeyCode.RightAlt); } }
 
