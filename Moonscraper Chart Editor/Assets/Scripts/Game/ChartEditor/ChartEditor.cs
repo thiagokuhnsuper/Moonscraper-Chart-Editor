@@ -732,6 +732,7 @@ public class ChartEditor : UnitySingleton<ChartEditor>
 
         Song newSong = null;
         MidReader.CallbackState midiCallbackState = MidReader.CallbackState.None;
+        List<MidReader.MessageProcessParams> messageList = null;
 
         List<LoadingTask> tasks = new List<LoadingTask>()
         {
@@ -751,7 +752,7 @@ public class ChartEditor : UnitySingleton<ChartEditor>
                 try
                 {
                     if (mid)
-                        newSong = MidReader.ReadMidi(currentFileName, ref midiCallbackState);
+                        newSong = MidReader.ReadMidi(currentFileName, ref midiCallbackState, out messageList);
                     else
                         newSong = ChartReader.ReadChart(currentFileName);
                 }
@@ -766,7 +767,27 @@ public class ChartEditor : UnitySingleton<ChartEditor>
 
                     error = true;
                 }
+            }),
+        };
 
+        tasksManager.KickTasks(tasks);
+
+        while (tasksManager.isRunningTask)
+        {
+            yield return null;
+        }
+
+        // Tasks have finished
+        if (error)
+            yield break;    // Immediate exit
+
+        // Display messages to user
+        MidReader.ProcessPendingUserMessages(messageList, ref midiCallbackState);
+
+        tasks = new List<LoadingTask>()
+        {
+            new LoadingTask("Loading INI properties", () =>
+            {
                 try
                 {
                     string directory = System.IO.Path.GetDirectoryName(currentFileName);
@@ -809,10 +830,6 @@ public class ChartEditor : UnitySingleton<ChartEditor>
 
         while (tasksManager.isRunningTask)
         {
-            while (midiCallbackState == MidReader.CallbackState.WaitingForExternalInformation)
-            {
-                // Halt main thread until message box is complete
-            }
             yield return null;
         }
 

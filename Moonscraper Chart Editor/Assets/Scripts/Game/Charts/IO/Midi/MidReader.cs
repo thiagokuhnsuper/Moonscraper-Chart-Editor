@@ -133,8 +133,8 @@ namespace MoonscraperChartEditor.Song.IO
         };
 
         // For handling things that require user intervention
-        delegate void MessageProcessFn(MessageProcessParams processParams);
-        struct MessageProcessParams
+        public delegate void MessageProcessFn(MessageProcessParams processParams);
+        public struct MessageProcessParams
         {
             public string title;
             public string message;
@@ -152,7 +152,7 @@ namespace MoonscraperChartEditor.Song.IO
             InvalidChannelEventParameterValuePolicy = InvalidChannelEventParameterValuePolicy.ReadValid,
         };
 
-        public static Song ReadMidi(string path, ref CallbackState callBackState)
+        public static Song ReadMidi(string path, ref CallbackState callBackState, out List<MessageProcessParams> messages)
         {
             // Initialize new song
             Song song = new Song();
@@ -298,13 +298,12 @@ namespace MoonscraperChartEditor.Song.IO
                 }
             }
 
-            // Display messages to user
-            ProcessPendingUserMessages(messageList, ref callBackState);
+            messages = messageList;
 
             return song;
         }
 
-        static void ProcessPendingUserMessages(IList<MessageProcessParams> messageList, ref CallbackState callBackState)
+        public static void ProcessPendingUserMessages(IList<MessageProcessParams> messageList, ref CallbackState callBackState)
         {
             if (messageList == null)
             {
