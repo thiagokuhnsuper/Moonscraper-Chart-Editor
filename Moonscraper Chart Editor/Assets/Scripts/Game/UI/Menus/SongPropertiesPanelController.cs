@@ -46,7 +46,7 @@ public class SongPropertiesPanelController : TabMenu
 
     TimeSpan customTime = new TimeSpan();
 
-    static readonly string[] validAudioExtensions = { "ogg", "wav", "mp3", "opus" };
+    static readonly string[] validAudioExtensions = { "ogg", "wav", "mp3", "opus", "flac" };
     readonly ExtensionFilter audioExFilter = new ExtensionFilter("Audio files", validAudioExtensions);
 
     Dictionary<Song.AudioInstrument, Text> m_audioStreamTextLookup;
