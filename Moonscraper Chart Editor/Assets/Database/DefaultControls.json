@@ -228,7 +228,9 @@
                     },
                     {
                         "modifiers": 0,
-                        "keys": []
+                        "keys": [
+                            8
+                        ]
                     }
                 ],
                 "gpButtonMaps": [
