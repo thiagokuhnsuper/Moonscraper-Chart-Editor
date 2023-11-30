@@ -149,9 +149,10 @@ public class Export : DisplayMenu {
             saveDirectory = Path.Combine(saveDirectory, FileExplorer.StripIllegalChars(song.name).Trim());
 
             // Check if files exist at the current directory and ask user before overwriting.
-            if (Directory.Exists(saveDirectory)) {
+            if (Directory.Exists(saveDirectory) && Directory.GetFiles(saveDirectory).Length > 0)
+            {
                 NativeWindow window= ChartEditor.Instance.windowHandleManager.nativeWindow;
-                NativeMessageBox.Result overwrite = NativeMessageBox.Show("Exported files exist. Overwrite?", "Warning", NativeMessageBox.Type.YesNo, window);
+                NativeMessageBox.Result overwrite = NativeMessageBox.Show("This directory is not empty. Files will be overwritten. Proceed?", "Warning", NativeMessageBox.Type.YesNo, window);
 
                 if (overwrite != NativeMessageBox.Result.Yes) {
                     return;
