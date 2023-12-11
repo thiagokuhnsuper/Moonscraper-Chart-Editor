@@ -8,6 +8,7 @@ using System.Collections.Generic;
 #if BASS_AUDIO
 using Un4seen.Bass;
 using Un4seen.Bass.Misc;
+using Un4seen.Bass.AddOn.Flac;
 using Un4seen.Bass.AddOn.Opus;
 #endif
 
@@ -214,7 +215,19 @@ namespace MoonscraperEngine.Audio
 
         static int StreamCreateFile(string file, long offset, long length, BASSFlag flags)
         {
-            int audioStreamHandle = Bass.BASS_StreamCreateFile(file, offset, length, flags);
+            int audioStreamHandle = 0;
+
+            if (string.Equals(Path.GetExtension(file), ".flac", StringComparison.OrdinalIgnoreCase))
+            {
+                // Try to open as a FLAC file
+                audioStreamHandle = BassFlac.BASS_FLAC_StreamCreateFile(file, offset, length, flags);
+            }
+
+            if (audioStreamHandle == 0)
+            {
+                audioStreamHandle = Bass.BASS_StreamCreateFile(file, offset, length, flags);
+            }
+
             if (audioStreamHandle == 0)
             {
                 // Try an opus stream instead as a fallback
