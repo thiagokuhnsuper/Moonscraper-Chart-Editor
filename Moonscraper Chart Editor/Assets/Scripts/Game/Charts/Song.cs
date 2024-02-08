@@ -513,6 +513,141 @@ namespace MoonscraperChartEditor.Song
                 audioLocations[(int)audio] = string.Empty;
         }
 
+        /// <summary>
+        /// Cut a section of the song. Cuts all instruments, events, BPMs, and time signatures.
+        /// </summary>
+        /// <param name="start">The start position of the cut, in ticks (inclusive).</param>
+        /// <param name="end">The end position of the cut, in ticks (exclusive).</param>
+        public void Cut(uint start, uint end)
+        {
+            if (bpms.FirstOrDefault(x => x.tick == end) == null)
+            {
+                //There's no BPM change at the end tick. We need to create a new BPM.
+                uint? lastBpmBeforeStartValue = null, lastBpmBeforeEndValue = null;
+
+                foreach (BPM bpm in bpms)
+                {
+                    if (bpm.tick < start)
+                    {
+                        lastBpmBeforeStartValue = bpm.value;
+                    }
+
+                    if (bpm.tick < end)
+                    {
+                        lastBpmBeforeEndValue = bpm.value;
+                    }
+                }
+
+                if (lastBpmBeforeStartValue.HasValue && lastBpmBeforeEndValue.HasValue
+                    && lastBpmBeforeStartValue.Value != lastBpmBeforeEndValue.Value)
+                {
+                    //BPM at start and end of the section that will be cut are different. So we need to add a new BPM.
+                    Add(new BPM(end, lastBpmBeforeEndValue.Value));
+                }
+            }
+
+            if (timeSignatures.FirstOrDefault(x => x.tick == end) == null)
+            {
+                //There's no time signature change at the end tick. We need to create a new time signature.
+                uint? lastTsBeforeStartNumerator = null, lastTsBeforeStartDenominator = null;
+                uint? lastTsBeforeEndNumerator = null, lastTsBeforeEndDenominator = null;
+
+                foreach (TimeSignature ts in timeSignatures)
+                {
+                    if (ts.tick < start)
+                    {
+                        lastTsBeforeStartNumerator = ts.numerator;
+                        lastTsBeforeStartDenominator = ts.denominator;
+                    }
+
+                    if (ts.tick < end)
+                    {
+                        lastTsBeforeEndNumerator = ts.numerator;
+                        lastTsBeforeEndDenominator = ts.denominator;
+                    }
+                }
+
+                if (lastTsBeforeStartNumerator.HasValue && lastTsBeforeEndNumerator.HasValue &&
+                       (lastTsBeforeStartNumerator.Value != lastTsBeforeEndNumerator.Value
+                       || lastTsBeforeStartDenominator.Value != lastTsBeforeEndDenominator.Value))
+                {
+                    //Time signature at start and end of the section that will be cut are different. So we need to add a new time signature.
+                    Add(new TimeSignature(end, lastTsBeforeEndNumerator.Value, lastTsBeforeEndDenominator.Value));
+                }
+            }
+
+            List<SongObject> eventsToRemove = GetSongObjectsToRemove(start, end, eventsAndSections);
+            foreach (var eventSection in eventsToRemove)
+                Remove((Event)eventSection, false);
+            UpdateCache();
+            MoveSongObjects(start, end, eventsAndSections);
+            UpdateCache();
+
+            List<SongObject> syncTracksToRemove = GetSongObjectsToRemove(start, end, syncTrack);
+            foreach (var syncTrack in syncTracksToRemove)
+                Remove((SyncTrack)syncTrack, false);
+            UpdateCache();
+            MoveSongObjects(start, end, syncTrack);
+            UpdateCache();
+
+            foreach (Instrument instrument in Enum.GetValues(typeof(Instrument)))
+            {
+                if (instrument == Instrument.Unrecognised || !ChartExistsForInstrument(instrument))
+                    continue;
+
+                foreach (Difficulty difficulty in Enum.GetValues(typeof(Difficulty)))
+                {
+                    Chart chart = GetChart(instrument, difficulty);
+
+                    foreach (Note note in chart.notes)
+                    {
+                        if (note.tick < start && note.tick + note.length > start) // Note starts before the start position of the cut, but due to its length it ends after the start position. Make it shorter.
+                        {
+                            note.SetSustainByPos(start, this, true);
+
+                            if (note.controller != null)
+                                note.controller.SetDirty();
+                        }
+                    }
+
+                    List<SongObject> objectsToRemove = GetSongObjectsToRemove(start, end, chart.chartObjects);
+                    chart.Remove(objectsToRemove.Cast<ChartObject>().ToArray());
+                    MoveSongObjects(start, end, chart.chartObjects);
+
+                    chart.UpdateCache();
+                }
+            }
+        }
+
+        private static List<SongObject> GetSongObjectsToRemove<T>(uint start, uint end, IList<T> songObjects) where T : SongObject
+        {
+            List<SongObject> objectsToRemove = new();
+
+            foreach (SongObject songObject in songObjects)
+            {
+                if (songObject.tick >= start && songObject.tick < end) // Song object is in the section that will be cut. Remove it from chart.
+                {
+                    objectsToRemove.Add(songObject);
+                }
+            }
+
+            return objectsToRemove;
+        }
+
+        private static void MoveSongObjects<T>(uint start, uint end, IList<T> songObjects) where T : SongObject
+        {
+            foreach (SongObject songObject in songObjects)
+            {
+                if (songObject.tick >= end) // Chart object is after the section that will be cut. Move it forward.
+                {
+                    songObject.tick -= end - start;
+
+                    if (songObject.controller != null)
+                        songObject.controller.SetDirty();
+                }
+            }
+        }
+
         public static Chart.GameMode InstumentToChartGameMode(Instrument instrument)
         {
             switch (instrument)

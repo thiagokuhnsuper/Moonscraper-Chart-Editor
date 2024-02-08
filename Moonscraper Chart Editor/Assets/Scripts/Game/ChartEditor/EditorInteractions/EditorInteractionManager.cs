@@ -10,6 +10,7 @@ public class EditorInteractionManager : System.Object
         HighwayObjectEdit,
         BpmCalculator,
         LyricsEditor,
+        CutChart,
     }
 
     [System.Serializable]
